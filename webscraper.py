@@ -12,6 +12,7 @@ class NoMatchError(ValueError):
     """
     pass
 
+
 class PositionMapper:
     """
     Maps the position data in a css style string to the position on the field.
@@ -302,6 +303,10 @@ class WebScraper:
         """
         Loads all matches of the given season and extracts their data, such as players, formation and captains
         """
+        #check for season out of range
+        if season not in range(10, 20):
+            return None
+
         #load list of all matches for the given season
         soup = self._getBasePage(season)
 
@@ -333,8 +338,3 @@ class WebScraper:
         cb.finish()
         return result
 
-ws = WebScraper()
-matches = ws.getMatches(19)
-
-#pp = pprint.PrettyPrinter(indent=4)
-#pp.pprint(matches[-1])
