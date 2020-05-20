@@ -55,13 +55,13 @@ class PositionMapper:
         if pos[0] == 17 and pos[1] == 15:
             return 1
         # IV right
-        if 33 <= pos[0] and pos[0] <= 34 and pos[1] == 15:
+        if 25 <= pos[0] and pos[0] <= 42 and pos[1] == 15:
             return 2
         # IV middle
         if pos[0] == 50 and pos[1] == 15:
             return 3
         # IV left
-        if 66 <= pos[0] and pos[0] <= 67 and pos[1] == 15:
+        if 58 <= pos[0] and pos[0] <= 75 and pos[1] == 15:
             return 4
         # LV defensive
         if pos[0] == 83 and pos[1] == 15:
@@ -70,13 +70,13 @@ class PositionMapper:
         if pos[0] == 17 and 20 <= pos[1] and pos[1] <= 30:
             return 6
         # RMF defensive
-        if 33 <= pos[0] and pos[0] <= 34 and 20 <= pos[1] and pos[1] <= 30:
+        if 25 <= pos[0] and pos[0] <= 42 and 20 <= pos[1] and pos[1] <= 30:
             return 7
         # MF defensive
-        if 40 <= pos[0] and pos[0] <= 60 and 20 <= pos[1] and pos[1] <= 30:
+        if 43 <= pos[0] and pos[0] <= 54 and 20 <= pos[1] and pos[1] <= 30:
             return 8
         # LMF defensive
-        if 66 <= pos[0] and pos[0] <= 67 and 20 <= pos[1] and pos[1] <= 30:
+        if 55 <= pos[0] and pos[0] <= 75 and 20 <= pos[1] and pos[1] <= 30:
             return 9
         # LF defensive
         if pos[0] == 83 and 20 <= pos[1] and pos[1] <= 30:
@@ -85,25 +85,25 @@ class PositionMapper:
         if pos[0] == 17 and 30 < pos[1] and pos[1] <= 40:
             return 11
         # RMF offensive
-        if 33 <= pos[0] and pos[0] <= 34 and 30 < pos[1] and pos[1] <= 40:
+        if 25 <= pos[0] and pos[0] <= 42 and 30 < pos[1] and pos[1] <= 40:
             return 12
         # MF offensive
         if pos[0] == 50 and 30 < pos[1] and pos[1] <= 40:
             return 13
         # LMF offensive
-        if 66 <= pos[0] and pos[0] <= 67 and 30 < pos[1] and pos[1] <= 40:
+        if 55 <= pos[0] and pos[0] <= 75 and 30 < pos[1] and pos[1] <= 40:
             return 14
         # LF offensive
         if pos[0] == 83 and 30 < pos[1] and pos[1] <= 40:
             return 15
         # RS
-        if pos[0] == 25 and 40 < pos[1] and pos[1] <= 50:
+        if 20 <= pos[0] and pos[0] <= 35 and 40 < pos[1] and pos[1] <= 50:
             return 16
         # MS
         if pos[0] == 50 and 40 < pos[1] and pos[1] <= 50:
             return 17
         # LS
-        if pos[0] == 75 and 40 < pos[1] and pos[1] <= 50:
+        if 65 <= pos[0] and pos[0] <= 80 and 40 < pos[1] and pos[1] <= 50:
             return 18
 
         # position could not be found. Raise an error
