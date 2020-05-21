@@ -2,6 +2,7 @@
 import scrapy
 import json
 import requests
+from spiderUtil import FbrefFixtureResponseWrapper, FbrefMatchResponseWrapper
 
 from hashlib import md5
 from dateSearch import DateSearch
@@ -17,11 +18,23 @@ class FixturesSpider(scrapy.Spider):
     }
 
     start_urls = [
-        # "https://fbref.com/de/comps/20/2109/schedule/2018-2019-Bundesliga-Fixtures",
-         "https://fbref.com/de/comps/20/1634/schedule/2017-2018-Bundesliga-Fixtures",
-         "https://fbref.com/de/comps/20/1529/schedule/2016-2017-Bundesliga-Fixtures",
-         "https://fbref.com/de/comps/20/1470/schedule/2015-2016-Bundesliga-Fixtures",
-         "https://fbref.com/de/comps/20/736/schedule/2014-2015-Bundesliga-Fixtures"
+         #"https://fbref.com/de/comps/20/2109/schedule/2018-2019-Bundesliga-Fixtures",
+         #"https://fbref.com/de/comps/20/1634/schedule/2017-2018-Bundesliga-Fixtures",
+         #"https://fbref.com/de/comps/20/1529/schedule/2016-2017-Bundesliga-Fixtures",
+         #"https://fbref.com/de/comps/20/1470/schedule/2015-2016-Bundesliga-Fixtures",
+         "https://fbref.com/de/comps/20/736/schedule/2014-2015-Bundesliga-Fixtures",
+         #"https://fbref.com/de/comps/9/1889/schedule/2018-2019-Premier-League-Fixtures",
+         #"https://fbref.com/de/comps/9/1631/schedule/2017-2018-Premier-League-Fixtures",
+         #"https://fbref.com/de/comps/9/1526/schedule/2016-2017-Premier-League-Fixtures",
+         #"https://fbref.com/de/comps/9/1467/schedule/2015-2016-Premier-League-Fixtures",
+         #"https://fbref.com/de/comps/12/1886/schedule/2018-2019-La-Liga-Fixtures",
+         #"https://fbref.com/de/comps/12/1652/schedule/2017-2018-La-Liga-Fixtures",
+         #"https://fbref.com/de/comps/12/1547/schedule/2016-2017-La-Liga-Fixtures",
+         #"https://fbref.com/de/comps/12/1488/schedule/2015-2016-La-Liga-Fixtures",
+         #"https://fbref.com/de/comps/11/1896/schedule/2018-2019-Serie-A-Fixtures",
+         #"https://fbref.com/de/comps/11/1640/schedule/2017-2018-Serie-A-Fixtures",
+         #"https://fbref.com/de/comps/11/1535/schedule/2016-2017-Serie-A-Fixtures",
+         #"https://fbref.com/de/comps/11/1476/schedule/2015-2016-Serie-A-Fixtures"
     ]
 
     def __getSeason(self, response) -> str:
@@ -30,91 +43,35 @@ class FixturesSpider(scrapy.Spider):
         # extract the years
         return seasonStr.strip().split(" ")[0]
 
-    def __getMatchTable(self, response):
-        # extract tbody of the table containing the matches
-        return response.css("table[id='sched_ks_all']")[0].css("tbody")[0]
-
-    def __parsePosition(self, name, field):
-        styleSelector = field.css('div[title="' + name + '"]').xpath("@style").extract()
-        if not styleSelector:
-            return None
-
-        styleArray = styleSelector[0].split(";")
-        del styleArray[2]
-
-        result = {}
-        switch = False
-        for style in styleArray:
-            temp = style.split(": calc(")
-            key = temp[0].strip()
-            value = round(float(temp[1].split("%")[0]))
-            if key == "right":
-                switch = True
-                key = "left"
-            result[key] = value
-
-        if switch:
-            result["top"] = 100 - result["top"]
-
-        return result
-
-    def __parseSingleTeam(self, team, field, date):
-        result = []
-        playerList = team.css("tr")
-        plSpider = PlayerSpider(date)
-        for player in playerList:
-            data = player.css("td")
-            if data:
-                name = data[1].css("a::text").get()
-                result.append(
-                    {"number": int(data[0].css("::text").get()),
-                     "name": name,
-                     "position": self.__parsePosition(name, field),
-                     "skill": plSpider.getPlayer(name)
-                     })
-        return result
-
     def __dumpToFile(self, filePath, toDump):
         dFile = open(filePath, "w+")
         dFile.write(json.dumps(toDump))
         dFile.close()
 
-    def parse_teams(self, response, fileName, matchDate):
-        result = []
-        teams = response.css("div[class='lineup'] > table")
-        field = response.css("div[id='field']")
-        if not field:
-            return
+    def parseTeams(self, response, fileName, matchDate):
+        plSpider = PlayerSpider(matchDate)
 
-        field = field[0]
-        for team in teams:
-            result.append(self.__parseSingleTeam(team, field, matchDate))
-
-        self.__dumpToFile("data/matches/mData/" + fileName + ".txt", result)
+        wrapper = FbrefMatchResponseWrapper(response, plSpider)
+        if wrapper.hasField():
+            self.__dumpToFile("data/matches/mData/" + fileName + ".txt", wrapper.getTeams())
 
     def parse(self, response):
         season = self.__getSeason(response)
-        matches = self.__getMatchTable(response).css(
-            "tr:not([class^='spacer partial_table'])").css("tr:not([class^='thead'])")
+        respWrapper = FbrefFixtureResponseWrapper(response)
 
         matchList = []
-        for match in matches:
-            mData = {}
+        while respWrapper.nextRow():
             # check if there is a score. If there is, there is also a match report
-            score = match.css("td[data-stat='score'] > a::text").get()
-            if score != None:
-                mData["date"] = match.css("td[data-stat='date'] > a::text").get()
-                mData["score"] = score.strip().replace("–", "-")
-                mData["team_a"] = match.css("td[data-stat='squad_a'] > a::text").get()
-                mData["team_b"] = match.css("td[data-stat='squad_b'] > a::text").get()
-                mData["match_file"] = season + "/" + str(md5((mData["score"] + mData["team_a"] + mData["team_b"]).encode('utf-8')).hexdigest())
-                matchList.append(mData)
-                url = "https://fbref.com" + match.css("td[data-stat='match_report'] > a::attr(href)").get()
+            if respWrapper.hasScore():
+                data = respWrapper.extractData()
+                data["match_file"] = season + "/" + str(md5((data["score"] + data["team_a"] + data["team_b"]).encode('utf-8')).hexdigest())
 
-                yield scrapy.Request(url, callback=self.parse_teams, cb_kwargs=dict(fileName=mData["match_file"], matchDate=mData["date"]))
+                url = respWrapper.generateMatchURL()
+                
+                yield scrapy.Request(url, callback=self.parseTeams, cb_kwargs=dict(fileName=data["match_file"], matchDate=data["date"]))
+                matchList.append(data)
 
         self.__dumpToFile("data/matches/" + season + ".txt", matchList)
-
 
 class PlayerSpider:
 
