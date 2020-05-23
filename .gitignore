@@ -126,6 +126,5 @@ dmypy.json
 
 # data
 *.txt
-*.png
 *.pickle
 *.model
