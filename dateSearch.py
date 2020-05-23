@@ -5,7 +5,7 @@ import locale
 
 class DateSearch:
 
-    def __init__(self, startDate, searchDepth=100):
+    def __init__(self, startDate, searchDepth=185):
         self._startDate = datetime.datetime.strptime(startDate, '%d.%m.%Y')
         self._offset = 0
         self._searchDepth = searchDepth
