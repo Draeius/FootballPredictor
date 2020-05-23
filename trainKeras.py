@@ -2,7 +2,7 @@
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Flatten, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import SGD
 
@@ -12,29 +12,39 @@ import matplotlib.pyplot as plt
 import pickle
 import data
 
-INIT_LR = 0.01
-EPOCHS = 80
+INIT_LR = 0.02
+EPOCHS = 2000
 
-dc = data.DataComposer()
-season = dc.getData(range(15, 19))
+dc = data.DataComposer("data/matches/", includeOldStats=False, includeBench=False, balance=True)
+season = dc.getData()
 
 stopAt = round(len(season["matches"])*0.8)
 
-trainX = season["matches"][:stopAt]
+trainX = np.asarray(season["matches"][:stopAt]).astype(np.int32)
 trainY = season["results"][:stopAt]
 
-testX = season["matches"][stopAt:]
+testX = np.asarray(season["matches"][stopAt:]).astype(np.int32)
 testY = season["results"][stopAt:]
 
-inputVectorSize = len(trainX[0])
+matrixX = len(trainX[0])
+matrixY = len(trainX[0][0])
 
 lb = LabelBinarizer()
 trainY = lb.fit_transform(trainY)
 testY = lb.transform(testY)
 
+
+print("[INFO] building network")
 model = Sequential()
-model.add(Dense(round(inputVectorSize*4), input_shape=(inputVectorSize,), activation="sigmoid"))
-model.add(Dense(round(inputVectorSize), activation="sigmoid"))
+model.add(Dense(40, input_shape=(matrixX, matrixY,), activation="sigmoid"))
+model.add(Dropout(.4))
+model.add(Flatten())
+#model.add(Dense(round(matrixX/6), activation="sigmoid"))
+model.add(Dense(22, activation="sigmoid"))
+model.add(Dropout(.3))
+#model.add(Dense(round(matrixX/15), activation="sigmoid"))
+model.add(Dense(8, activation="sigmoid"))
+model.add(Dropout(.2))
 model.add(Dense(len(lb.classes_), activation="softmax"))
 
 print("[INFO] training network...")
@@ -43,7 +53,7 @@ model.compile(loss="categorical_crossentropy", optimizer=opt,
 	metrics=["accuracy"])
 
 H = model.fit(x=trainX, y=trainY, validation_data=(testX, testY),
-	epochs=EPOCHS, batch_size=64)
+	epochs=EPOCHS, batch_size=16)
 
 # plot the training loss and accuracy
 N = np.arange(0, EPOCHS)
