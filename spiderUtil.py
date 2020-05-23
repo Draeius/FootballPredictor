@@ -22,7 +22,7 @@ class FbrefFixtureResponseWrapper(AbstractFbrefResponseWrapper):
 
     def __init__(self, response: HtmlResponse):
         super().__init__(response)
-        self.__tableRows = self._response.css("table[id='sched_ks_all']")[0].css(
+        self.__tableRows = self._response.css("div[class='table_outer_container'] > div > table")[0].css(
             "tbody > tr:not([class^='thead'])").css("tr:not([class^='spacer partial_table'])")
         self.__currentRow = -1
         self.__rowCount = len(self.__tableRows)
@@ -102,10 +102,11 @@ class FbrefMatchResponseWrapper(AbstractFbrefResponseWrapper):
     Wraps the response of a request to get a single match from fbref.com to provide utility methods
     """
 
-    def __init__(self, response: HtmlResponse, playerSpider):
+    def __init__(self, response: HtmlResponse, playerSpider, matchScore):
         super().__init__(response)
         self.__field = response.css("div[id='field']")
         self.__teams = []
+        self.__score = matchScore
         if self.hasField():
             self.__field = self.__field[0]
             self.__teamSelector = response.css("div[class='lineup'] > table")
@@ -120,6 +121,9 @@ class FbrefMatchResponseWrapper(AbstractFbrefResponseWrapper):
 
     def getTeams(self):
         return [team.toArray() for team in self.__teams]
+
+    def getData(self):
+        return {"teams": self.getTeams(), "score": self.__score}
 
 
 class Team:
