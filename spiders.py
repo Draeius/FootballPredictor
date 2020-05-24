@@ -24,25 +24,27 @@ class FixturesSpider(scrapy.Spider):
         #"https://fbref.com/de/comps/20/1529/schedule/2016-2017-Bundesliga-Fixtures",
         #"https://fbref.com/de/comps/20/1470/schedule/2015-2016-Bundesliga-Fixtures",
         #"https://fbref.com/de/comps/20/736/schedule/2014-2015-Bundesliga-Fixtures",
-        "https://fbref.com/de/comps/9/1889/schedule/2018-2019-Premier-League-Fixtures",
-        "https://fbref.com/de/comps/9/1631/schedule/2017-2018-Premier-League-Fixtures",
-        "https://fbref.com/de/comps/9/1526/schedule/2016-2017-Premier-League-Fixtures",
-        "https://fbref.com/de/comps/9/1467/schedule/2015-2016-Premier-League-Fixtures",
-        "https://fbref.com/de/comps/12/1886/schedule/2018-2019-La-Liga-Fixtures",
-        "https://fbref.com/de/comps/12/1652/schedule/2017-2018-La-Liga-Fixtures",
-        "https://fbref.com/de/comps/12/1547/schedule/2016-2017-La-Liga-Fixtures",
-        "https://fbref.com/de/comps/12/1488/schedule/2015-2016-La-Liga-Fixtures",
-        "https://fbref.com/de/comps/11/1896/schedule/2018-2019-Serie-A-Fixtures",
-        "https://fbref.com/de/comps/11/1640/schedule/2017-2018-Serie-A-Fixtures",
-        "https://fbref.com/de/comps/11/1535/schedule/2016-2017-Serie-A-Fixtures",
-        "https://fbref.com/de/comps/11/1476/schedule/2015-2016-Serie-A-Fixtures",
+        #"https://fbref.com/de/comps/9/1889/schedule/2018-2019-Premier-League-Fixtures",
+        #"https://fbref.com/de/comps/9/1631/schedule/2017-2018-Premier-League-Fixtures",
+        #"https://fbref.com/de/comps/9/1526/schedule/2016-2017-Premier-League-Fixtures",
+        #"https://fbref.com/de/comps/9/1467/schedule/2015-2016-Premier-League-Fixtures",
+        #"https://fbref.com/de/comps/12/1886/schedule/2018-2019-La-Liga-Fixtures",
+        #"https://fbref.com/de/comps/12/1652/schedule/2017-2018-La-Liga-Fixtures",
+        #"https://fbref.com/de/comps/12/1547/schedule/2016-2017-La-Liga-Fixtures",
+        #"https://fbref.com/de/comps/12/1488/schedule/2015-2016-La-Liga-Fixtures",
+        #"https://fbref.com/de/comps/11/1896/schedule/2018-2019-Serie-A-Fixtures",
+        #"https://fbref.com/de/comps/11/1640/schedule/2017-2018-Serie-A-Fixtures",
+        #"https://fbref.com/de/comps/11/1535/schedule/2016-2017-Serie-A-Fixtures",
+        #"https://fbref.com/de/comps/11/1476/schedule/2015-2016-Serie-A-Fixtures",
+        "https://fbref.com/en/comps/13/2104/schedule/2018-2019-Ligue-1-Fixtures"
     ]
 
     leagues = {
         "Premier-League": 13,
         "La-Liga": 53,
         "Bundesliga": 19,
-        "Serie-A": 31
+        "Serie-A": 31,
+        "Ligue-1": 16
     }
 
     def __getSeason(self, response) -> str:
@@ -61,7 +63,7 @@ class FixturesSpider(scrapy.Spider):
 
         wrapper = FbrefMatchResponseWrapper(response, plSpider, matchScore)
         if wrapper.hasField():
-            self.__dumpToFile("data/matches/" + fileName + ".txt", wrapper.getData())
+            self.__dumpToFile("data/matches/test/" + fileName + ".txt", wrapper.getData())
 
     def parse(self, response: HtmlResponse):
         season = self.__getSeason(response)
