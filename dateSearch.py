@@ -6,9 +6,15 @@ import locale
 class DateSearch:
 
     def __init__(self, startDate, searchDepth=185):
-        self._startDate = datetime.datetime.strptime(startDate, '%d.%m.%Y')
+        self._startDate = self.__parseDate(startDate)
         self._offset = 0
         self._searchDepth = searchDepth
+
+    def __parseDate(self, date):
+        if "-" in date:
+            return datetime.datetime.strptime(date, '%Y-%m-%d')
+        else:
+            return datetime.datetime.strptime(date, '%d.%m.%Y')
 
     def nextOffset(self):
         self._offset *= -1
@@ -26,7 +32,7 @@ class DateSearch:
             return date.strftime("%y")
 
     def getSeason(self, date):
-        return self.__getSeasonFromDate(datetime.datetime.strptime(date, '%d.%m.%Y'))
+        return self.__getSeasonFromDate(self.__parseDate(date))
 
     def getNextDate(self):
         locale.setlocale(locale.LC_ALL, 'de_DE')

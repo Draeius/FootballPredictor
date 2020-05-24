@@ -244,8 +244,3 @@ class DataPlotter:
         self.__plotYDistribution(data)
         self.__plotMissingPlayerSkill(data)
 
-#dc = DataComposer("data/matches/", includeBench=False, includeOldStats=False, balance=True)
-#dc.getData()
-
-#dp = DataPlotter("data/matches/", "data/output/")
-#dp.plot()
