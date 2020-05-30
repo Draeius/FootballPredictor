@@ -1,7 +1,7 @@
-from prediction import Model
+from prediction import MatrixModel
 
 
-model = Model(0.1, 150)
+model = MatrixModel(0.05, 400)
 model.trainNewModel()
 
 #model.load("data/currentBest/")

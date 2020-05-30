@@ -3,48 +3,69 @@ import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
-from tensorflow.keras.layers import Dense, Dropout, Flatten
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Convolution2D, MaxPooling2D
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.optimizers import SGD
+from keras.preprocessing.image import ImageDataGenerator
 
 import data
-
 
 class Model:
 
     def __init__(self, learningRate: float, epochs: int, batchSize=16, dataSplit=.8):
-        self.__learningRate = learningRate
-        self.__epochs = epochs
-        self.__model = None
-        self.__dataSplit = dataSplit
-        self.__batchSize = batchSize
-        self.__history = None
-        self.__labelBinarizer = LabelBinarizer()
+        self._learningRate = learningRate
+        self._epochs = epochs
+        self._dataSplit = dataSplit
+        self._batchSize = batchSize
+        self._history = None
+        self._labelBinarizer = LabelBinarizer()
+        self._model = None
 
-    def __buildModel(self, data):
+    def save(self, fileDir):
+        print("[INFO] serializing network and label binarizer...")
+        self._model.save(fileDir + "keras.model", save_format="h5")
+        f = open(fileDir + "label.pickle", "wb")
+        f.write(pickle.dumps(self._labelBinarizer))
+        f.close()
+
+    def load(self, fileDir):
+        # load the model and label binarizer
+        print("[INFO] loading network and label binarizer...")
+        self._model = load_model(fileDir + "keras.model")
+        self._labelBinarizer = pickle.loads(open(fileDir + "label.pickle", "rb").read())
+
+    def plotModel(self, fileDir):
+        N = np.arange(0, self._epochs)
+        plt.style.use("ggplot")
+        plt.figure()
+        plt.plot(N, self._history.history["loss"], label="train_loss")
+        plt.plot(N, self._history.history["val_loss"], label="val_loss")
+        plt.plot(N, self._history.history["accuracy"], label="train_acc")
+        plt.plot(N, self._history.history["val_accuracy"], label="val_acc")
+        plt.title("Training Loss and Accuracy (Simple NN)")
+        plt.xlabel("Epoch #")
+        plt.ylabel("Loss/Accuracy")
+        plt.legend()
+        plt.savefig(fileDir + "training.png")
+
+class MatrixModel(Model):
+
+    def _buildModel(self, data):
         print("[INFO] building network")
-        self.__model = Sequential()
-        self.__model.add(Dense(12, input_shape=self.getDataShape(data), activation="sigmoid"))
-        self.__model.add(Dropout(.2))
-        self.__model.add(Flatten())
-        self.__model.add(Dense(6, activation="sigmoid"))
-        self.__model.add(Dropout(.2))
-        self.__model.add(Dense(len(self.__labelBinarizer.classes_), activation="softmax"))
-        #self.__model = Sequential()
-        #self.__model.add(Dense(40, input_shape=self.getDataShape(data), activation="sigmoid"))
-        #self.__model.add(Dropout(.4))
-        #self.__model.add(Flatten())
-        #self.__model.add(Dense(22, activation="sigmoid"))
-        #self.__model.add(Dropout(.3))
-        #self.__model.add(Dense(8, activation="sigmoid"))
-        #self.__model.add(Dropout(.2))
-        #self.__model.add(Dense(len(self.__labelBinarizer.classes_), activation="softmax"))
+        self._model = Sequential()
+        self._model.add(Dense(12, input_shape=self.getDataShape(data), activation="sigmoid"))
+        self._model.add(Dropout(.2))
+        self._model.add(Flatten())
+        self._model.add(Dense(6, activation="sigmoid"))
+        self._model.add(Dropout(.2))
+        self._model.add(Dense(len(self._labelBinarizer.classes_), activation="softmax"))
 
-        opt = SGD(lr=self.__learningRate)
-        self.__model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
+        opt = SGD(lr=self._learningRate)
+        self._model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
 
     def getTrainingData(self):
         dc = data.DataComposer("data/matches/", includeOldStats=False, includeBench=False, balance=True)
@@ -60,61 +81,34 @@ class Model:
     def splitData(self, data):
         splitAt = round(len(data["matches"])*0.8)
         return {
-            "trainX": np.asarray(data["matches"][:splitAt]).astype(np.int32),
+            "trainX": np.asarray(data["matches"][:splitAt], np.float32),
             "trainY": data["results"][:splitAt],
-            "testX": np.asarray(data["matches"][splitAt:]).astype(np.int32),
+            "testX": np.asarray(data["matches"][splitAt:], np.float32),
             "testY": data["results"][splitAt:]
         }
 
     def trainNewModel(self):
         dataSet = self.splitData(self.getTrainingData())
 
-        trainY = self.__labelBinarizer.fit_transform(dataSet["trainY"])
-        testY = self.__labelBinarizer.transform(dataSet["testY"])
+        trainY = self._labelBinarizer.fit_transform(dataSet["trainY"])
+        testY = self._labelBinarizer.transform(dataSet["testY"])
 
-        self.__buildModel(dataSet["trainX"])
-        self.__history = self.__model.fit(x=dataSet["trainX"], y=trainY, validation_data=(dataSet["testX"], testY),
-                                          epochs=self.__epochs, batch_size=self.__batchSize, verbose=1)
-
-    def plotModel(self, fileDir):
-        N = np.arange(0, self.__epochs)
-        plt.style.use("ggplot")
-        plt.figure()
-        plt.plot(N, self.__history.history["loss"], label="train_loss")
-        plt.plot(N, self.__history.history["val_loss"], label="val_loss")
-        plt.plot(N, self.__history.history["accuracy"], label="train_acc")
-        plt.plot(N, self.__history.history["val_accuracy"], label="val_acc")
-        plt.title("Training Loss and Accuracy (Simple NN)")
-        plt.xlabel("Epoch #")
-        plt.ylabel("Loss/Accuracy")
-        plt.legend()
-        plt.savefig(fileDir + "training.png")
-
-    def save(self, fileDir):
-        print("[INFO] serializing network and label binarizer...")
-        self.__model.save(fileDir + "keras.model", save_format="h5")
-        f = open(fileDir + "label.pickle", "wb")
-        f.write(pickle.dumps(self.__labelBinarizer))
-        f.close()
-
-    def load(self, fileDir):
-        # load the model and label binarizer
-        print("[INFO] loading network and label binarizer...")
-        self.__model = load_model(fileDir + "keras.model")
-        self.__labelBinarizer = pickle.loads(open(fileDir + "label.pickle", "rb").read())
+        self._buildModel(dataSet["trainX"])
+        self._history = self._model.fit(x=dataSet["trainX"], y=trainY, validation_data=(dataSet["testX"], testY),
+                                          epochs=self._epochs, batch_size=self._batchSize, verbose=1)
 
     def predict(self):
         dataSet = self.getPredictData()
-        dataSet["matches"] = np.asarray(dataSet["matches"]).astype(np.int32)
+        dataSet["matches"] = np.asarray(dataSet["matches"], np.float32)
         truePreds = 0
         falsePreds = 0
         # make a prediction on the data
-        preds = self.__model.predict(dataSet["matches"])
+        preds = self._model.predict(dataSet["matches"])
         # find the class label index with the largest corresponding probability
         
         argmax = preds.argmax(axis=1)
         for index in range(len(preds)):
-            label = self.__labelBinarizer.classes_[argmax[index]]
+            label = self._labelBinarizer.classes_[argmax[index]]
 
             # draw the class label + probability on the output image
             text = "{}: {:.2f}% -- {} ;".format(label, preds[index][argmax[index]] * 100, str(label == dataSet["results"][index]))
@@ -126,3 +120,31 @@ class Model:
             print("[INFO] " + text)
 
         print("{:.2f}% correct".format(truePreds / (truePreds+falsePreds)))
+
+    
+class ImageModel(Model):
+
+    def __init__(self, learningRate: float, epochs: int, batchSize=16, dataSplit=.8):
+        super().__init__(learningRate, epochs, batchSize, dataSplit)
+        self._dataGen = ImageDataGenerator(validation_split=dataSplit)
+
+    def __buildModel(self):
+        print("[INFO] building network")
+        self._model = Sequential()
+        #self._model.add(Convolution2D(32, 128, 96, activation="relu"))
+        #self._model.add(Convolution2D(32, 128, 96, input_shape=(640, 480, 3), activation="relu"))
+        #self._model.add(MaxPooling2D(pool_size=(4,3)))
+        self._model.add(Flatten())
+        self._model.add(Dense(66, activation="sigmoid"))
+        self._model.add(Dense(22, activation="sigmoid"))
+        self._model.add(Dense(3, activation="softmax"))
+
+        opt = SGD(lr=self._learningRate)
+        self._model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
+
+    def trainNewModel(self):
+        self.__buildModel()
+        self._history = self._model.fit(self._dataGen.flow_from_directory("data/images/train", batch_size=self._batchSize))
+
+    def predict(self):
+        pass

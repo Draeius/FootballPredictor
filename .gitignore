@@ -128,3 +128,4 @@ dmypy.json
 *.txt
 *.pickle
 *.model
+*.png
