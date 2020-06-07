@@ -1,4 +1,6 @@
 
+import numpy as np
+
 class NoMatchError(ValueError):
     """
     Exception that indicates, that no match has been found
@@ -10,6 +12,29 @@ class PositionMapper:
     """
     Maps the position data in a css style string to the position on the field.
     """
+
+    
+    def __isPositionEmpty(self, grid, position) -> bool:
+        return not np.any(grid[position])
+
+    def __fixPosition(self, position):
+        switcher = {
+            1: 6,
+            2: 7,
+            3: 8,
+            4: 9,
+            5: 10,
+            6: 11,
+            7: 12,
+            8: 13,
+            9: 14,
+            10: 15,
+            12: 16,
+            13: 17,
+            14: 18,
+            17: 19
+        }
+        return switcher[position]
 
     def calcPos(self, posString: str) -> int:
         """
@@ -109,3 +134,18 @@ class PositionMapper:
         # position could not be found. Raise an error
         raise NoMatchError(
             "The position top: " + str(pos[0]) + ", left: " + str(pos[1]) + " has no match.")
+
+    def map(self, posData, playerSkill, grid):
+        position = self.matchPosition([posData["top"], posData["left"]])
+
+        #check if position is empty or player is the same as the current one
+        if self.__isPositionEmpty(grid, position) or grid[position] == playerSkill:
+            return position
+        
+        # fix some issues with some formations
+        position = self.__fixPosition(position)
+        if self.__isPositionEmpty(grid, position):
+            # abandon player
+            return None
+        # return new Position
+        return position
