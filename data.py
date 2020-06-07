@@ -11,6 +11,121 @@ from statistics import mean
 from sklearn import preprocessing
 
 
+class Player:
+
+    def __init__(self, name, data, position):
+        self.position = position
+        self.name = name
+        self.misc = data
+        self.skills = data[1]
+
+    def __isOldData(self, data) -> bool:
+        """
+        Determines if the given data is from an older version of fifa
+        """
+        # if version is older, then there will be a string in the first index of the skills array
+        return type(data[1][0]) == type("")
+
+    @property
+    def position(self):
+        return self.__position
+
+    @position.setter
+    def position(self, position):
+        self.__position = position
+
+    @property
+    def name(self):
+        return self.__name
+
+    @name.setter
+    def name(self, name):
+        self.__name = name
+
+    @property
+    def misc(self):
+        return self.__misc
+
+    @misc.setter
+    def misc(self, data):
+        self.__misc = data[0]
+        # check if data is from an older fifa version
+        # older versions had one less attribute
+        if type(data[1][0]) == type(""):
+            # append the missing data to misc
+            self.__misc.append(data[1][0])
+
+    @property
+    def skills(self):
+        return self.__skills
+
+    @skills.setter
+    def skills(self, data):
+        # check if data is from an older fifa version
+        # older versions had one less attribute
+        if type(data[0]) == type(""):
+            # delete string where it is not meant to be
+            del data[0]
+            # add 75 as dummy
+            data.insert(11, 75)
+        
+        self.__skills = np.asarray(data)
+
+
+class Team:
+
+    def __init__(self, data, includeBench):
+        self.__includeBench = includeBench
+        self.__grid = None
+        self.members = data
+
+    def __updateGrid(self):
+        if self.__includeBench:
+            self.__grid = np.zeros((40,34))
+        else:
+            self.__grid = np.zeros((20,34))
+        
+        benchPos = 20
+        mapper = mapping.PositionMapper()
+        for member in self.members:
+            if member.position != None:
+                position = mapper.map(member.position, member, self.__grid)
+            elif self.__includeBench:
+                position = benchPos
+                benchPos += 1
+
+            self.__grid[position] = member.skills
+
+    @property
+    def members(self):
+        return self.__members
+
+    @members.setter
+    def members(self, data):
+        self.__members = []
+        noSkill = []
+        for member in data:
+            if member["skill"]:
+                self.__members.append(Player(member["name"], member["skill"], member["position"]))
+            else:
+                noSkill.append(member)
+
+        if noSkill:
+            avg = np.zeros(34)
+            for member in self.__members:
+                avg = avg + member.skills
+            avg = np.round(avg / len(self.__members))
+
+            for member in noSkill:
+                self.__members.append(Player(member["name"], avg.copy(), member["position"]))
+
+        self.__updateGrid()
+
+    @property
+    def grid(self):
+        return self.__grid
+
+
 class DataComposer:
 
     WINNING_LABELS = ["Win A", "Draw", "Win B"]
@@ -22,25 +137,6 @@ class DataComposer:
         self.__fileLoader = FileLoader(directory)
         self.__scale = scale
 
-    def __fixPosition(self, position):
-        switcher = {
-            1: 6,
-            2: 7,
-            3: 8,
-            4: 9,
-            5: 10,
-            6: 11,
-            7: 12,
-            8: 13,
-            9: 14,
-            10: 15,
-            12: 16,
-            13: 17,
-            14: 18,
-            17: 19
-        }
-        return switcher[position]
-
     def getMatchWinner(self, score: str):
         arr = score.split("-")
         if arr[0] > arr[1]:
@@ -49,69 +145,15 @@ class DataComposer:
             return self.WINNING_LABELS[2]
         return self.WINNING_LABELS[1]
 
-    def crateAvgPlayer(self, team):
-        skill = [0]*34
-        for index in range(34):
-            totalSkill = 75
-            members = 1
-            for member in team:
-                if "skill" in member.keys() and member["skill"] != None:
-                    if type(member["skill"][1][index]) == type("") and "lbs" in member["skill"][1][index]:
-                        totalSkill += 75
-                    else:
-                        totalSkill += int(member["skill"][1][index])
-                        members += 1
-            skill[index] = round(totalSkill / members)
-        return skill
-
-    def getPlayerSkill(self, team, player):
-        if "skill" in player.keys() and player["skill"] != None:
-            if type(player["skill"][1][0]) == type("") and "lbs" in player["skill"][1][0]:
-                skill = player["skill"][1]
-                del skill[0]
-                skill.insert(11, 75)
-                return skill
-
-            return player["skill"][1]
-        
-        return self.crateAvgPlayer(team)
-
-    def getTeam(self, team):
-        if self.__includeBench:
-            result = [[0]*34]*40
-        else:
-            result = [[0]*34]*20
-        mapper = mapping.PositionMapper()
-        benchPos = 20
-        emptyPos = [0]*34
-        for member in team:
-            if member["position"] != None:
-                try:
-                    position = mapper.matchPosition([member["position"]["top"], member["position"]["left"]])
-                except:
-                    print("During player " + member["name"])
-                    raise
-
-                if result[position] != emptyPos and result[position] != self.getPlayerSkill(team, member):
-                    # fix some issues with some formations
-                    newPosition = self.__fixPosition(position)
-                    if result[newPosition] != 0:
-                        continue
-                    position = newPosition
-            elif self.__includeBench:
-                position = benchPos
-                benchPos += 1
-
-            result[position] = self.getPlayerSkill(team, member)
-        return result
-
     def parseMatch(self, match):
         result = {"match": [], "result": -1}
-        for team in match["teams"]:
-            result["match"] += self.getTeam(team)
+        teamA = Team(match["teams"][0], self.__includeBench)
+        teamB = Team(match["teams"][1], self.__includeBench)
+
+        result["match"] = np.asarray(list(teamA.grid) + list(teamB.grid))
 
         if self.__scale:
-            result["match"] = np.divide(np.asarray(result["match"], dtype=np.float32), 100)
+            result["match"] = np.divide(result["match"], 100)
             
         result["result"] = self.getMatchWinner(match["score"])
         return result
@@ -129,6 +171,7 @@ class DataComposer:
                 data["results"].append(match["result"])
 
             file = self.__fileLoader.getNextFile()
+            break
         
         #for index in range(len(data["matches"])):
         #    data["matches"][index] = preprocessing.scale(data["matches"][index])
@@ -339,3 +382,5 @@ class ImagePrinter:
                 pass
             match = fl.getNextFile()
 
+dc = DataComposer("data/matches/")
+dc.getData()
