@@ -67,9 +67,9 @@ class Player:
             # delete string where it is not meant to be
             del data[0]
             # add 75 as dummy
-            data.insert(11, 75)
+            data.insert(11, np.average(np.asarray(data, np.int16)))
         
-        self.__skills = np.asarray(data)
+        self.__skills = np.asarray(data, np.int16)
 
 
 class Team:
@@ -88,13 +88,15 @@ class Team:
         benchPos = 20
         mapper = mapping.PositionMapper()
         for member in self.members:
+            position = None
             if member.position != None:
                 position = mapper.map(member.position, member, self.__grid)
             elif self.__includeBench:
                 position = benchPos
                 benchPos += 1
 
-            self.__grid[position] = member.skills
+            if position != None:
+                self.__grid[position] = member.skills
 
     @property
     def members(self):
@@ -117,7 +119,7 @@ class Team:
             avg = np.round(avg / len(self.__members))
 
             for member in noSkill:
-                self.__members.append(Player(member["name"], avg.copy(), member["position"]))
+                self.__members.append(Player(member["name"], [[],avg.copy()], member["position"]))
 
         self.__updateGrid()
 
@@ -171,7 +173,6 @@ class DataComposer:
                 data["results"].append(match["result"])
 
             file = self.__fileLoader.getNextFile()
-            break
         
         #for index in range(len(data["matches"])):
         #    data["matches"][index] = preprocessing.scale(data["matches"][index])

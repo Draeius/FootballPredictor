@@ -113,6 +113,7 @@ class MatrixModel(Model):
 
             # draw the class label + probability on the output image
             text = "{}: {:.2f}% -- {} ;".format(label, preds[index][argmax[index]] * 100, str(label == dataSet["results"][index]))
+            print(label, dataSet["results"][index])
             if label == dataSet["results"][index]:
                 truePreds += 1
             else:
