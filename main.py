@@ -1,4 +1,4 @@
-from prediction import MatrixModel
+from model import MatrixModel
 
 
 model = MatrixModel(0.05, 400)
