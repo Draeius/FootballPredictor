@@ -381,6 +381,3 @@ class ImagePrinter:
             except TypeError:
                 pass
             match = fl.getNextFile()
-
-dc = DataComposer("data/matches/")
-dc.getData()
