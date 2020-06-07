@@ -52,6 +52,7 @@ class Model:
         plt.legend()
         plt.savefig(fileDir + "training.png")
 
+
 class MatrixModel(Model):
 
     def _buildModel(self, data):
@@ -148,3 +149,7 @@ class ImageModel(Model):
 
     def predict(self):
         pass
+
+
+class Clusterer:
+    pass
